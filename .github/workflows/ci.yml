@@ -1,0 +1,35 @@
+name: Validate
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm audit --omit=dev --audit-level=high
+      - name: Validate production image
+        run: docker build -t linea:test .
+      - name: Smoke test container without external charges
+        run: |
+          docker run -d --name linea-smoke -p 127.0.0.1:3000:3000 -e NODE_ENV=development -e APP_MODE=demo -e APP_URL=http://127.0.0.1:3000 linea:test
+          curl --fail --retry 10 --retry-connrefused --retry-delay 2 http://127.0.0.1:3000/api/health
+          curl --fail http://127.0.0.1:3000/ --output /dev/null
+          docker stop linea-smoke
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linea-build
+          path: |
+            dist/
+            dist-server/
+          retention-days: 7
