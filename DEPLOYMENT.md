@@ -21,7 +21,7 @@ Use a Linux server with Docker Engine and Docker Compose v2, a domain pointing t
 ```sh
 git clone https://github.com/vikasdocker/virtual-phone-numbers.git
 cd virtual-phone-numbers
-git checkout v1.0.0
+git checkout v1.0.1
 cp .env.example .env
 chmod 600 .env
 ```
@@ -89,7 +89,7 @@ Render can deploy `main` after successful GitHub checks. Review dependency updat
 
 ```sh
 git fetch --tags
-git checkout v1.0.0
+git checkout v1.0.1
 docker compose up -d --build
 ```
 

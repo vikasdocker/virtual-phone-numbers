@@ -46,7 +46,7 @@ The repository includes a Render Blueprint for a single Docker service with a pe
 ```sh
 npm run check
 npm audit --omit=dev --audit-level=high
-docker build -t linea-virtual-numbers:1.0.0 .
+docker build -t linea-virtual-numbers:1.0.1 .
 ```
 
 Integration tests cover authentication, origin checks, quote expiry, server-controlled prices, duplicate reservations, actual Stripe/Twilio signature verification, idempotent provisioning, tenant isolation, uncertain provider responses, refunds, rental release retries, late payments, retention, and production configuration guards. Tests use in-memory SQLite and mocked external calls; they do not purchase numbers or process real payments.
