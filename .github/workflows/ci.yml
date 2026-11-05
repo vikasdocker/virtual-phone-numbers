@@ -32,7 +32,7 @@ jobs:
           curl --fail --retry 15 --retry-all-errors --retry-delay 2 http://127.0.0.1:3001/api/health || { docker logs linea-preview; exit 1; }
           node -e "fetch('http://127.0.0.1:3001/api/config').then(r=>r.json()).then(c=>{if(c.freePreview!==true||c.mode!=='demo')process.exit(1)})"
           docker stop linea-preview
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: linea-build
           path: |
