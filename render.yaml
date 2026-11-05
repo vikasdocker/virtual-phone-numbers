@@ -1,53 +1,28 @@
-# Paid persistent disk required. Review Render pricing before creating resources.
+# Free public preview only. No persistent storage and no real sales.
+# Use render-production.yaml for the separately approved live-sales profile.
 services:
   - type: web
     name: linea-virtual-numbers
     runtime: docker
-    plan: starter
+    plan: free
     region: singapore
     branch: main
     dockerfilePath: ./Dockerfile
     healthCheckPath: /api/health
-    domains:
-      - numbers.blueflutex.in
     autoDeployTrigger: checksPass
     numInstances: 1
-    disk:
-      name: linea-data
-      mountPath: /app/data
-      sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
       - key: APP_MODE
-        value: live
-      - key: APP_URL
-        value: https://numbers.blueflutex.in
+        value: preview
       - key: TRUST_PROXY
         value: "1"
       - key: DATABASE_PATH
-        value: /app/data/linea.db
+        value: ":memory:"
       - key: SALES_ENABLED
         value: "false"
       - key: LEGAL_REVIEWED
         value: "false"
-      - key: STRIPE_SECRET_KEY
-        sync: false
-      - key: STRIPE_WEBHOOK_SECRET
-        sync: false
-      - key: TWILIO_ACCOUNT_SID
-        sync: false
-      - key: TWILIO_AUTH_TOKEN
-        sync: false
-      - key: SUPPORT_EMAIL
-        sync: false
-      - key: OPERATOR_NAME
-        sync: false
-      - key: OPERATOR_ADDRESS
-        sync: false
-      - key: PRICE_US_CENTS
-        value: "300"
-      - key: PRICE_CA_CENTS
-        value: "400"
       - key: MESSAGE_RETENTION_DAYS
-        value: "30"
+        value: "1"

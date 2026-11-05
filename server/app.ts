@@ -49,6 +49,8 @@ export function createApp(
   payments: Payments | null,
 ) {
   const app = express();
+  const simulated = c.APP_MODE !== "live";
+  const secure = c.APP_MODE !== "demo";
   app.disable("x-powered-by");
   app.set("trust proxy", c.TRUST_PROXY);
   app.use(
@@ -63,13 +65,12 @@ export function createApp(
           fontSrc: ["'self'"],
           objectSrc: ["'none'"],
           frameAncestors: ["'none'"],
-          upgradeInsecureRequests: c.APP_MODE === "live" ? [] : null,
+          upgradeInsecureRequests: secure ? [] : null,
         },
       },
-      strictTransportSecurity:
-        c.APP_MODE === "live"
-          ? { maxAge: 31536000, includeSubDomains: true }
-          : false,
+      strictTransportSecurity: secure
+        ? { maxAge: 31536000, includeSubDomains: true }
+        : false,
     }),
   );
   app.get("/api/health", (_req, res) => {
@@ -246,7 +247,7 @@ export function createApp(
     );
     res.cookie("linea_session", token, {
       httpOnly: true,
-      secure: c.APP_MODE === "live",
+      secure,
       sameSite: "lax",
       maxAge: 7 * 86400_000,
       path: "/",
@@ -260,9 +261,10 @@ export function createApp(
   });
   app.get("/api/config", (_req, res) =>
     res.json({
-      mode: c.APP_MODE,
-      salesEnabled: c.APP_MODE === "demo" || c.SALES_ENABLED === "true",
-      countries: countries.filter((x) => c.APP_MODE === "demo" || x.live),
+      mode: simulated ? "demo" : "live",
+      freePreview: c.APP_MODE === "preview",
+      salesEnabled: simulated || c.SALES_ENABLED === "true",
+      countries: countries.filter((x) => simulated || x.live),
       supportEmail: c.SUPPORT_EMAIL,
       retentionDays: c.MESSAGE_RETENTION_DAYS,
       operatorName: c.OPERATOR_NAME || "Linea demo operator",
@@ -272,12 +274,23 @@ export function createApp(
   app.get("/api/auth/me", (req: AuthedRequest, res) =>
     res.json({ user: req.user ? publicUser(req.user) : null }),
   );
-  app.post("/api/demo", async (req: AuthedRequest, res) => {
-    if (c.APP_MODE !== "demo") throw new HttpError(404, "Not found");
+  app.post("/api/demo", authLimit, async (req: AuthedRequest, res) => {
+    if (!simulated) throw new HttpError(404, "Not found");
     if (req.user) {
       res.json({ user: publicUser(req.user) });
       return;
     }
+    if (
+      c.APP_MODE === "preview" &&
+      Number(
+        (db.prepare("SELECT COUNT(*) AS n FROM users").get() as { n: number })
+          .n,
+      ) >= 1000
+    )
+      throw new HttpError(
+        503,
+        "Preview capacity reached. Please try again after the next restart.",
+      );
     const user: User = {
       id: randomUUID(),
       email: `demo-${randomUUID()}@example.com`,
@@ -349,6 +362,11 @@ export function createApp(
     res.json({ user: publicUser(user) });
   });
   app.post("/api/auth/register", authLimit, async (req, res) => {
+    if (c.APP_MODE === "preview")
+      throw new HttpError(
+        403,
+        "Account registration is unavailable in the free preview. Use the sample workspace; do not enter personal credentials.",
+      );
     const data = credentials
       .extend({
         name: z.string().trim().min(2).max(80),
@@ -384,6 +402,11 @@ export function createApp(
   });
   const dummyPassword = hashPassword("invalid-password-placeholder");
   app.post("/api/auth/login", authLimit, async (req, res) => {
+    if (c.APP_MODE === "preview")
+      throw new HttpError(
+        403,
+        "Personal accounts are unavailable in the free preview. Reload to open a sample workspace.",
+      );
     const data = credentials.parse(req.body);
     const user = db
       .prepare("SELECT * FROM users WHERE email=?")
@@ -405,6 +428,11 @@ export function createApp(
     res.clearCookie("linea_session", { path: "/" }).json({ ok: true });
   });
   app.patch("/api/account", auth, async (req: AuthedRequest, res) => {
+    if (c.APP_MODE === "preview")
+      throw new HttpError(
+        403,
+        "Account changes are unavailable in the free preview.",
+      );
     const data = z
       .object({
         name: z.string().trim().min(2).max(80),
@@ -452,7 +480,7 @@ export function createApp(
         })
         .parse(req.query);
       const country = countries.find(
-        (x) => x.code === query.country && (c.APP_MODE === "demo" || x.live),
+        (x) => x.code === query.country && (simulated || x.live),
       );
       if (!country) throw new HttpError(400, "Country is not available");
       const available = await provider.search(country.code, query.contains);
@@ -567,7 +595,7 @@ export function createApp(
       );
     }
     audit(db, req.user!.id, "checkout.created", order.id);
-    if (c.APP_MODE === "demo") {
+    if (simulated) {
       db.prepare(
         "UPDATE orders SET status='active',provider_sid=?,expires_at=? WHERE id=?",
       ).run(

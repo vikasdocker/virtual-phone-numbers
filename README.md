@@ -26,11 +26,11 @@ Open **http://127.0.0.1:3000**. Use Node **24.13 or later in the 24.x line**. No
 
 The full application needs a Node/Docker backend. GitHub Pages only serves static files and cannot run this backend.
 
-The repository includes a Render Blueprint for a single Docker service with a persistent disk:
+The default Render Blueprint deploys a **free public preview**. It uses isolated sample workspaces with in-memory data and cannot process real payments. Personal registration and password changes are disabled. Sample data resets whenever the service restarts or sleeps.
 
 [Deploy on Render](https://render.com/deploy?repo=https://github.com/vikasdocker/virtual-phone-numbers)
 
-**This creates paid hosting resources if you complete setup.** Review the plan and disk pricing in Render before deployment. GitHub stores the source; Render runs the backend. The proposed custom domain is **numbers.blueflutex.in**. Setup instructions, credentials, DNS, webhook registration, launch checks, and Docker alternatives are in [DEPLOYMENT.md](DEPLOYMENT.md).
+For real sales, `render-production.yaml` contains the **paid persistent-storage profile**. It is never applied automatically by the free deployment. Review and approve hosting costs before using it. GitHub stores the source; Render runs the backend. The proposed custom domain is **numbers.blueflutex.in**. See [DEPLOYMENT.md](DEPLOYMENT.md) for setup and launch steps.
 
 ## Product scope
 
@@ -55,21 +55,22 @@ GitHub Actions runs tests, TypeScript checks, frontend/backend builds, dependenc
 
 ## Layout
 
-| Path                  | Purpose                                              |
-| --------------------- | ---------------------------------------------------- |
-| `src/`                | Responsive customer portal                           |
-| `server/app.ts`       | Authenticated API, signed webhooks, order processing |
-| `server/providers.ts` | Twilio and Stripe adapters                           |
-| `server/db.ts`        | SQLite schema and persistence                        |
-| `scripts/admin.mjs`   | Admin promotion, recovery, checkout reconciliation   |
-| `scripts/backup.mjs`  | Online consistent SQLite backup                      |
-| `tests/`              | API and lifecycle integration tests                  |
-| `render.yaml`         | GitHub-connected managed Docker deployment           |
-| `compose.yaml`        | Self-hosted app, persistent volumes, Caddy HTTPS     |
+| Path                     | Purpose                                              |
+| ------------------------ | ---------------------------------------------------- |
+| `src/`                   | Responsive customer portal                           |
+| `server/app.ts`          | Authenticated API, signed webhooks, order processing |
+| `server/providers.ts`    | Twilio and Stripe adapters                           |
+| `server/db.ts`           | SQLite schema and persistence                        |
+| `scripts/admin.mjs`      | Admin promotion, recovery, checkout reconciliation   |
+| `scripts/backup.mjs`     | Online consistent SQLite backup                      |
+| `tests/`                 | API and lifecycle integration tests                  |
+| `render.yaml`            | Free hosted preview; real sales disabled             |
+| `render-production.yaml` | Paid live-sales profile with persistent storage      |
+| `compose.yaml`           | Self-hosted app, persistent volumes, Caddy HTTPS     |
 
 ## Operations and security
 
-Run **one app instance** against its local persistent SQLite volume. Horizontal scaling or multiple replicas require a database/worker redesign. Never deploy the database to an ephemeral filesystem or an NFS volume. Keep encrypted off-host backups and test recovery.
+For **real sales**, run **one app instance** against its local persistent SQLite volume. Horizontal scaling or multiple replicas require a database/worker redesign. Never deploy customer data to an ephemeral filesystem or an NFS volume. Keep encrypted off-host backups and test recovery. The separate free preview deliberately stores only simulated data in memory and never opens the configured live database.
 
 The app uses scrypt password hashes, hashed opaque sessions, HTTP-only secure cookies in live mode, same-origin write checks, request validation, prepared SQL, rate limits, security headers, raw-body Stripe verification, and Twilio signature validation. Secrets stay server-side. Uncertain provisioning is never blindly retried; review the Operations queue.
 

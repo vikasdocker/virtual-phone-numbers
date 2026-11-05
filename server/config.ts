@@ -6,12 +6,12 @@ const env = z
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
-    APP_MODE: z.enum(["demo", "live"]).default("demo"),
+    APP_MODE: z.enum(["demo", "preview", "live"]).default("demo"),
     PORT: z.coerce.number().int().min(1).max(65535).default(3000),
     APP_URL: z
       .string()
       .url()
-      .default("http://127.0.0.1:5173")
+      .default(process.env.RENDER_EXTERNAL_URL || "http://127.0.0.1:5173")
       .refine((value) => {
         const u = new URL(value);
         return (
@@ -43,10 +43,16 @@ const env = z
 
 export type Config = typeof env;
 export function validateConfig(c: Config) {
-  if (c.NODE_ENV === "production" && c.APP_MODE !== "live")
+  if (c.NODE_ENV === "production" && c.APP_MODE === "demo")
     throw new Error(
-      "Production requires APP_MODE=live. Demo runs only in development.",
+      "Production requires APP_MODE=live or the explicitly non-commercial preview profile.",
     );
+  if (c.APP_MODE === "preview") {
+    if (!c.APP_URL.startsWith("https://"))
+      throw new Error("Hosted preview requires an HTTPS APP_URL.");
+    if (c.SALES_ENABLED !== "false")
+      throw new Error("Real sales cannot be enabled in preview mode.");
+  }
   if (c.APP_MODE === "live") {
     if (!c.APP_URL.startsWith("https://"))
       throw new Error("Live mode requires an HTTPS APP_URL.");

@@ -50,6 +50,7 @@ type Country = {
 type Config = {
   mode: "demo" | "live";
   salesEnabled: boolean;
+  freePreview?: boolean;
   countries: Country[];
   supportEmail: string;
   retentionDays: number;
@@ -732,8 +733,10 @@ export default function App() {
           {config.mode === "demo" && (
             <div className="demo-banner">
               <span>
-                <Sparkles size={14} /> You’re exploring a demo workspace.
-                Numbers, messages, and payments are simulated.
+                <Sparkles size={14} />{" "}
+                {config.freePreview
+                  ? "Free preview · No real sales. Sample data resets on restart. Do not enter personal credentials."
+                  : "You’re exploring a demo workspace. Numbers, messages, and payments are simulated."}
               </span>
               <span className="demo-badge">SANDBOX</span>
             </div>
@@ -1527,7 +1530,24 @@ export default function App() {
                   </section>
                 </>
               )}
-              {page === "Settings" && user && (
+              {page === "Settings" && config.freePreview && (
+                <section className="panel empty">
+                  <ShieldCheck size={32} />
+                  <h2>Sample workspace only</h2>
+                  <p>
+                    Personal accounts and password changes are unavailable in
+                    this free preview. All sample data resets when the service
+                    restarts.
+                  </p>
+                  <button
+                    className="primary"
+                    onClick={() => navigate("Overview")}
+                  >
+                    Back to overview
+                  </button>
+                </section>
+              )}
+              {page === "Settings" && user && !config.freePreview && (
                 <div className="settings-grid">
                   <section className="panel">
                     <div className="section-heading">
@@ -1726,7 +1746,35 @@ export default function App() {
           </button>
         </div>
       )}
-      {auth && (
+      {auth && config.freePreview && (
+        <Modal title="Explore the free preview" close={() => setAuth(null)}>
+          <p className="modal-description">
+            Use an isolated sample workspace. Personal accounts and real
+            payments are unavailable, and sample data resets when the service
+            restarts.
+          </p>
+          <button
+            className="primary full-width"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              try {
+                const r = await api<{ user: User }>("/demo", post({}));
+                setUser(r.user);
+                setAuth(null);
+                await refresh();
+              } catch (e) {
+                notify((e as Error).message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            Open sample workspace <ArrowRight size={16} />
+          </button>
+        </Modal>
+      )}
+      {auth && !config.freePreview && (
         <Modal
           title={auth === "login" ? "Welcome back." : "Make yourself at home."}
           close={() => {

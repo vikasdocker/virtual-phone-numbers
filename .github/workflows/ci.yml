@@ -26,6 +26,12 @@ jobs:
           curl --fail --retry 15 --retry-all-errors --retry-delay 2 http://127.0.0.1:3000/api/health || { docker logs linea-smoke; exit 1; }
           curl --fail http://127.0.0.1:3000/ --output /dev/null
           docker stop linea-smoke
+      - name: Smoke test public free preview
+        run: |
+          docker run -d --name linea-preview -p 127.0.0.1:3001:3000 -e NODE_ENV=production -e APP_MODE=preview -e APP_URL=https://preview.example.test -e SALES_ENABLED=false linea:test
+          curl --fail --retry 15 --retry-all-errors --retry-delay 2 http://127.0.0.1:3001/api/health || { docker logs linea-preview; exit 1; }
+          node -e "fetch('http://127.0.0.1:3001/api/config').then(r=>r.json()).then(c=>{if(c.freePreview!==true||c.mode!=='demo')process.exit(1)})"
+          docker stop linea-preview
       - uses: actions/upload-artifact@v4
         with:
           name: linea-build

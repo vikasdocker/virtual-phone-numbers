@@ -1,8 +1,18 @@
 # Production deployment
 
-## Render from GitHub
+## Free Render preview
 
-1. Open [the deployment blueprint](https://render.com/deploy?repo=https://github.com/vikasdocker/virtual-phone-numbers) in your Render account. Connect GitHub if prompted. Review the **paid Starter service and 1 GB persistent disk** before creating anything. The blueprint uses Singapore and one instance.
+The default `render.yaml` uses a **Free** Docker web service with `APP_MODE=preview`, `SALES_ENABLED=false`, and in-memory sample data. It requires no Stripe or Twilio credentials. `APP_URL` defaults to Render's documented `RENDER_EXTERNAL_URL`, so the initial `onrender.com` URL works without guessing its hostname.
+
+Render Free services sleep after inactivity and lose local state on restarts. Persistent disks are unavailable. This profile therefore **cannot run real sales**. Real registration, login with personal credentials, and account changes are blocked; demo checkout remains simulated even if provider credentials are present. The app refuses `SALES_ENABLED=true` in this mode. Do not enter personal data.
+
+Deploy the free profile from [the repository blueprint](https://render.com/deploy?repo=https://github.com/vikasdocker/virtual-phone-numbers). The separately approved paid live-sales profile is in `render-production.yaml` and is not applied by this free deployment. Usage above included quotas may be billed by Render if a payment method is configured; review your workspace spend limits. Never upgrade plans or add paid resources as part of trying the free preview.
+
+To connect `numbers.blueflutex.in`, first add the custom domain to the created Render service, then set the DNS `numbers` CNAME to the exact service hostname returned by Render. After DNS/TLS verification, set `APP_URL=https://numbers.blueflutex.in` and redeploy. Until then, use the working `onrender.com` address.
+
+## Paid live-sales profile on Render
+
+1. Create a separate Blueprint selecting **`render-production.yaml`** as its file path. Connect GitHub if prompted. Review and approve the **paid Starter service and 1 GB persistent disk** before creating anything. This profile uses Singapore and one instance. The default `render.yaml` is the free preview, so do not use it for real sales.
 2. Set the prompted environment variables directly in Render. Never put secrets in a GitHub issue, commit, browser URL, or chat:
    - `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` from an approved Twilio account. Use a dedicated Twilio project/subaccount for this business.
    - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` from Stripe. Start with test keys and a test endpoint, then switch to live keys and the live endpoint secret before accepting real money.

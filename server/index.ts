@@ -3,7 +3,10 @@ import { openDatabase } from "./db.js";
 import { createApp, runMaintenance } from "./app.js";
 import { demoProvider, liveProviders } from "./providers.js";
 validateConfig(config);
-const db = openDatabase(config.DATABASE_PATH);
+// A free hosted preview never opens or modifies a real customer database.
+const db = openDatabase(
+  config.APP_MODE === "preview" ? ":memory:" : config.DATABASE_PATH,
+);
 // A crash during an external provisioning request requires reconciliation, never a blind retry.
 db.prepare(
   "UPDATE orders SET status='needs_review',error='Process restarted during provisioning; reconcile provider state' WHERE status='provisioning'",
