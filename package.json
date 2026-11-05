@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "license": "UNLICENSED",
-  "repository": {"type":"git","url":"https://github.com/vikasdocker/virtual-phone-numbers.git"},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vikasdocker/virtual-phone-numbers.git"
+  },
   "type": "module",
   "engines": {
     "node": ">=24.13.0 <25"

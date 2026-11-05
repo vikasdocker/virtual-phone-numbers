@@ -138,19 +138,27 @@ function Modal({
   close: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const closeRef = useRef(close);
+  closeRef.current = close;
   useEffect(() => {
     const before = document.activeElement as HTMLElement;
     ref.current?.focus();
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close();
+      const dialogs = document.querySelectorAll(".modal");
+      if (dialogs[dialogs.length - 1] !== ref.current) return;
+      if (e.key === "Escape") closeRef.current();
       if (e.key === "Tab") {
         const elements = ref.current?.querySelectorAll<HTMLElement>(
-          "button,input,select,a[href],textarea",
+          "button:not(:disabled),input:not(:disabled),select:not(:disabled),a[href],textarea:not(:disabled)",
         );
         if (!elements?.length) return;
         const first = elements[0],
           last = elements[elements.length - 1];
-        if (e.shiftKey && document.activeElement === first) {
+        if (
+          e.shiftKey &&
+          (document.activeElement === first ||
+            document.activeElement === ref.current)
+        ) {
           e.preventDefault();
           last.focus();
         } else if (!e.shiftKey && document.activeElement === last) {
@@ -167,7 +175,7 @@ function Modal({
       document.body.style.overflow = overflow;
       before?.focus();
     };
-  }, [close]);
+  }, []);
   return (
     <div
       className="modal-overlay"

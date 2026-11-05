@@ -8,7 +8,22 @@ const env = z
       .default("development"),
     APP_MODE: z.enum(["demo", "live"]).default("demo"),
     PORT: z.coerce.number().int().min(1).max(65535).default(3000),
-    APP_URL: z.string().url().default("http://127.0.0.1:5173"),
+    APP_URL: z
+      .string()
+      .url()
+      .default("http://127.0.0.1:5173")
+      .refine((value) => {
+        const u = new URL(value);
+        return (
+          ["http:", "https:"].includes(u.protocol) &&
+          u.pathname === "/" &&
+          !u.search &&
+          !u.hash &&
+          !u.username &&
+          !u.password
+        );
+      }, "APP_URL must be an HTTP(S) origin without a path, query, or credentials")
+      .transform((value) => new URL(value).origin),
     DATABASE_PATH: z.string().default("data/linea.db"),
     TRUST_PROXY: z.coerce.number().int().min(0).max(5).default(0),
     STRIPE_SECRET_KEY: z.string().optional(),
